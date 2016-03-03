@@ -29,6 +29,7 @@ typedef double f64;
 #include "hm_math.h"
 #include "hm_memory.h"
 #include "hm_renderer.h"
+#include "hm_input.h"
 
 typedef struct {
     char *title;
@@ -51,11 +52,7 @@ typedef HM_CONFIG_DEF(HMConfigFunc);
 #define HM_INIT_GAME HM_INIT_GAME_DEF(hm_init_game)
 typedef HM_INIT_GAME_DEF(HMInitGameFunc);
 
-#define HM_HANDLE_EVENT_DEF(name) void name(SDL_Event *e, HMGameMemory *memory)
-#define HM_HANDLE_EVENT HM_HANDLE_EVENT_DEF(hm_handle_event)
-typedef HM_HANDLE_EVENT_DEF(HMHandleEventFunc);
-
-#define HM_UPDATE_AND_RENDER_DEF(name) void name(HMGameMemory *memory, f32 dt, HMTexture *framebuffer)
+#define HM_UPDATE_AND_RENDER_DEF(name) void name(HMGameMemory *memory, HMInput *input, HMTexture *framebuffer)
 #define HM_UPDATE_AND_RENDER HM_UPDATE_AND_RENDER_DEF(hm_update_and_render)
 typedef HM_UPDATE_AND_RENDER_DEF(HMUpdateAndRenderFunc);
 

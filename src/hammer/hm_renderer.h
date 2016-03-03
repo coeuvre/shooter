@@ -12,18 +12,6 @@ typedef struct {
     i32 pitch;
 } HMTexture;
 
-#define HM_PIXEL_RED_MASK 0xFF000000
-#define HM_PIXEL_RED_SHIFT 24
-
-#define HM_PIXEL_GREEN_MASK 0x00FF0000
-#define HM_PIXEL_GREEN_SHIFT 16
-
-#define HM_PIXEL_BLUE_MASK 0x0000FF00
-#define HM_PIXEL_BLUE_SHIFT 8
-
-#define HM_PIXEL_ALPHA_MASK 0x000000FF
-#define HM_PIXEL_ALPHA_SHIFT 0
-
 #if 0
 typedef struct {
 } HMRenderCommand;
@@ -39,6 +27,12 @@ typedef struct {
     SDL_Renderer *renderer;
     SDL_Texture *texture;
 } HMRenderer;
+
+static inline void
+hm_clear_texture(HMTexture *texture) {
+    memset(texture->pixels, 0,
+           sizeof(*texture->pixels) * texture->width * texture->height);
+}
 
 void hm_draw_bbox2(HMTexture *texture, HMBBox2 bbox, HMV4 color);
 

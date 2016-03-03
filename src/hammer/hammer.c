@@ -10,21 +10,15 @@ HM_INIT_GAME_DEF(hm_init_game_stub) {
     (void)memory;
 }
 
-HM_HANDLE_EVENT_DEF(hm_handle_event_stub) {
-    (void)e;
-    (void)memory;
-}
-
 HM_UPDATE_AND_RENDER_DEF(hm_update_and_render_stub) {
     (void)memory;
-    (void)dt;
+    (void)input;
     (void)framebuffer;
 }
 
 typedef struct {
     HMConfigFunc *config;
     HMInitGameFunc *init_game;
-    HMHandleEventFunc *handle_event;
     HMUpdateAndRenderFunc *update_and_render;
 } HMCallback;
 
@@ -36,14 +30,12 @@ main(int argc, char *argv[]) {
     HMCallback hm = {
         .config = hm_config_stub,
         .init_game = hm_init_game_stub,
-        .handle_event = hm_handle_event_stub,
         .update_and_render = hm_update_and_render_stub,
     };
 
 #ifdef HM_STATIC
     hm.config = hm_config;
     hm.init_game = hm_init_game;
-    hm.handle_event = hm_handle_event;
     hm.update_and_render = hm_update_and_render;
 #endif
 
@@ -114,7 +106,9 @@ main(int argc, char *argv[]) {
         hm.init_game(&memory);
     }
 
-    f32 dt = 1.0f / 60.0f;
+    HMInput input = {};
+
+    input.dt = 1.0f / 60.0f;
     //u32 target_frametime = dt * 1000.0f;
 
     i32 quit = 0;
@@ -128,19 +122,26 @@ main(int argc, char *argv[]) {
                     quit = 1;
                 } break;
 
-                case SDL_KEYDOWN: {
-                    if (e.key.keysym.sym == SDLK_ESCAPE && config.is_exit_on_esc) {
-                        quit = 1;
-                    }
-                } break;
-
                 default: break;
             }
-
-            hm.handle_event(&e, &memory);
         }
 
-        hm.update_and_render(&memory, dt, &framebuffer);
+        //
+        // Query input device
+        //
+        int key_count;
+        const u8 *keys = SDL_GetKeyboardState(&key_count);
+        for (int key_index = 0; key_index < key_count; ++key_index) {
+            input.keyboard.keys[key_index].is_down = keys[key_index];
+        }
+
+        SDL_GetMouseState(&input.mouse.x, &input.mouse.y);
+
+        if (config.is_exit_on_esc && input.keyboard.keys[HMKey_ESCAPE].is_down) {
+            quit = 1;
+        }
+
+        hm.update_and_render(&memory, &input, &framebuffer);
 
         //u32 frametime = SDL_GetTicks() - frame_begin;
         //printf("%u\n", frametime);
