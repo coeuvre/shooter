@@ -65,9 +65,45 @@ hm_v2_dot(HMV2 a, HMV2 b) {
     return result;
 }
 
+static inline HMV2
+hm_v2_perp(HMV2 v) {
+    HMV2 result;
+
+    result.x = -v.y;
+    result.y = v.x;
+
+    return result;
+}
+
+static inline HMV2
+hm_v2_rperp(HMV2 v) {
+    HMV2 result;
+
+    result.x = v.y;
+    result.y = -v.x;
+
+    return result;
+}
+
 static inline f32
 hm_get_v2_len_sq(HMV2 v) {
     f32 result = hm_v2_dot(v, v);
+
+    return result;
+}
+
+static inline f32
+hm_get_v2_len(HMV2 v) {
+    f32 result = sqrtf(hm_get_v2_len_sq(v));
+
+    return result;
+}
+
+static inline HMV2
+hm_v2_normalize(HMV2 v) {
+    f32 len = hm_get_v2_len(v);
+
+    HMV2 result = hm_v2_mul(1.0f / len, v);
 
     return result;
 }

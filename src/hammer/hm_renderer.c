@@ -58,11 +58,60 @@ v4_linear_to_u32_srgb(HMV4 color) {
     return result;
 }
 
-void hm_draw_bbox2(HMTexture *texture, HMBBox2 bbox, HMV4 color) {
-    i32 minx = (i32)bbox.min.x;
-    i32 miny = (i32)bbox.min.y;
-    i32 maxx = (i32)bbox.max.x;
-    i32 maxy = (i32)bbox.max.y;
+static inline HMV2
+get_point_in_basis2(HMBasis2 basis, HMV2 point) {
+    HMV2 result;
+
+    //result = basis.origin + point.x * basis.xaxis + point.y * basis.yaxis
+    result = hm_v2_add(basis.origin,
+                       hm_v2_add(
+                           hm_v2_mul(point.x, basis.xaxis),
+                           hm_v2_mul(point.y, basis.yaxis)
+                       ));
+
+    return result;
+}
+
+void
+hm_draw_bbox2(HMTexture *texture, HMBasis2 basis, HMBBox2 bbox, HMV4 color) {
+    (void)basis;
+
+    //
+    // [3] +---+ [2]
+    //     |   |
+    // [0] +---+ [1]
+    //
+    HMV2 points[4] = {
+        get_point_in_basis2(basis, bbox.min),
+        get_point_in_basis2(basis, hm_v2(bbox.max.x, bbox.min.y)),
+        get_point_in_basis2(basis, bbox.max),
+        get_point_in_basis2(basis, hm_v2(bbox.min.x, bbox.max.y)),
+    };
+    HMV2 edges_perp[4] = {
+        hm_v2_perp(hm_v2_sub(points[1], points[0])),
+        hm_v2_perp(hm_v2_sub(points[2], points[1])),
+        hm_v2_perp(hm_v2_sub(points[3], points[2])),
+        hm_v2_perp(hm_v2_sub(points[0], points[3])),
+    };
+
+    i32 minx = texture->width;
+    i32 maxx = 0;
+    i32 miny = texture->height;
+    i32 maxy = 0;
+
+    HM_ARRAY_FOR(points, point_index) {
+        HMV2 point = points[point_index];
+
+        i32 floorx = floorf(point.x);
+        i32 ceilx = ceilf(point.x);
+        i32 floory = floorf(point.y);
+        i32 ceily = ceilf(point.y);
+
+        if (floorx < minx) { minx = floorx; }
+        if (ceilx > maxx) { maxx = ceilx; }
+        if (floory < miny) { miny = floory; }
+        if (ceily > maxy) { maxy = ceily; }
+    }
 
     if (minx < 0) { minx = 0; }
     if (maxx >= texture->width) { maxx = texture->width; }
@@ -70,12 +119,35 @@ void hm_draw_bbox2(HMTexture *texture, HMBBox2 bbox, HMV4 color) {
     if (maxy >= texture->height) { maxy = texture->height; }
 
     u32 color32 = v4_linear_to_u32_srgb(color);
-    u32 *row = texture->pixels + (texture->height - 1 - miny) * texture->width + minx;
+    u8 *row = (u8 *)texture->pixels + (texture->height - 1 - miny) * texture->pitch + minx * sizeof(*texture->pixels);
     for (i32 y = miny; y < maxy; ++y) {
-        u32 *pixel = row;
+        u32 *pixel = (u32 *)row;
         for (i32 x = minx; x < maxx; ++x) {
-            *pixel++ = color32;
+            bool draw = true;
+            HMV2 testp = hm_v2(x, y);
+            HMV2 tests[4] = {
+                hm_v2_sub(testp, points[0]),
+                hm_v2_sub(testp, points[1]),
+                hm_v2_sub(testp, points[2]),
+                hm_v2_sub(testp, points[3]),
+            };
+
+            HM_ARRAY_FOR(edges_perp, edge_perp_index) {
+                HMV2 *edge_perp = edges_perp + edge_perp_index;
+                HMV2 *testv = tests + edge_perp_index;
+                bool is_inside = hm_v2_dot(*testv, *edge_perp) >= 0.0f;
+                if (!is_inside) {
+                    draw = false;
+                    break;
+                }
+            }
+
+            if (draw) {
+                *pixel = color32;
+            }
+
+            ++pixel;
         }
-        row -= texture->width;
+        row -= texture->pitch;
     }
 }

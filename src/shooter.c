@@ -30,10 +30,12 @@ typedef struct {
     Entity entities[1024];
     usize entity_count;
 
-    Entity *shooter;
     Entity *rope;
+    Entity *shooter;
 
     HMV2 mouse_pos;
+
+    f32 time;
 } GameState;
 
 static Entity *
@@ -76,7 +78,7 @@ add_arrow(GameState *gamestate, HMV2 pos, HMV2 vel) {
 static Entity *
 add_target(GameState *gamestate, HMV2 pos) {
     Entity *shooter = add_entity(gamestate, EntityType_Target, pos);
-    shooter->size = hm_v2(0.2f, 1.0f);
+    shooter->size = hm_v2(0.6f, 1.2f);
     return shooter;
 }
 
@@ -85,10 +87,11 @@ init_game_state(GameState *gamestate) {
     // Add a null entity at index 0
     add_entity(gamestate, EntityType_Null, hm_v2(0, 0));
 
-    gamestate->rope = add_rope(gamestate, hm_bbox2(hm_v2(1, 0),
-                               hm_v2(1 + 0.05, 16.875)));
+    gamestate->rope = add_rope(gamestate, hm_bbox2(hm_v2(1, 8),
+                               hm_v2(1 + 0.05, 28)));
 
-    gamestate->shooter = add_shooter(gamestate, hm_v2(1, 10));
+    HMBBox2 bbox_rope = hm_bbox2_cen_size(gamestate->rope->pos, gamestate->rope->size);
+    gamestate->shooter = add_shooter(gamestate, hm_v2(gamestate->rope->pos.x, bbox_rope.min.y));
 
     add_target(gamestate, hm_v2(28, 9));
 }
@@ -115,17 +118,17 @@ HM_UPDATE_AND_RENDER {
     GameState *gamestate = memory->perm.base;
 
     if (input->keyboard.keys[HMKey_W].is_down) {
-        gamestate->shooter->vel.y = 10;
+        gamestate->rope->vel.y = 10;
     } else if (input->keyboard.keys[HMKey_S].is_down) {
-        gamestate->shooter->vel.y = -10;
+        gamestate->rope->vel.y = -10;
     } else {
-        gamestate->shooter->vel.y = 0;
+        gamestate->rope->vel.y = 0;
     }
 
     gamestate->mouse_pos = hm_v2(input->mouse.x, WINDOW_HEIGHT - input->mouse.y);
 
     if (input->keyboard.keys[HMKey_SPACE].is_down) {
-        add_arrow(gamestate, gamestate->shooter->pos, hm_v2(20, 15));
+        add_arrow(gamestate, gamestate->shooter->pos, hm_v2(30, 0));
     }
 
     for (usize entity_index = 0; entity_index < gamestate->entity_count; ++entity_index) {
@@ -134,16 +137,25 @@ HM_UPDATE_AND_RENDER {
         entity->pos = hm_v2_add(entity->pos, hm_v2_mul(dt, entity->vel));
 
         switch (entity->type) {
+            case EntityType_Rope: {
+                Entity *rope = entity;
+                HMBBox2 bbox_rope = hm_bbox2_cen_size(rope->pos, rope->size);
+                if (bbox_rope.min.y <= 2.0f) {
+                    bbox_rope.min.y = 2.0f;
+                }
+                if (bbox_rope.min.y >= 15.0f) {
+                    bbox_rope.min.y = 15.0f;
+                }
+
+                bbox_rope = hm_bbox2_min_size(bbox_rope.min, rope->size);
+                rope->pos = hm_get_bbox2_cen(bbox_rope);
+            } break;
+
             case EntityType_Shooter: {
                 Entity *shooter = entity;
                 Entity *rope = gamestate->rope;
-                HMBBox2 rope_bbox = hm_bbox2_cen_size(rope->pos, rope->size);
-                if (shooter->pos.y > rope_bbox.max.y) {
-                    shooter->pos.y = rope_bbox.max.y;
-                }
-                if (shooter->pos.y < rope_bbox.min.y) {
-                    shooter->pos.y = rope_bbox.min.y;
-                }
+                HMBBox2 bbox_rope = hm_bbox2_cen_size(rope->pos, rope->size);
+                shooter->pos.y = bbox_rope.min.y;
             } break;
 
             case EntityType_Arrow: {
@@ -156,12 +168,34 @@ HM_UPDATE_AND_RENDER {
 
         HMV2 pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
         HMV2 size_screen = hm_v2_mul(METERS_TO_PIXELS, entity->size);
-        hm_draw_bbox2(framebuffer, hm_bbox2_cen_size(pos_screen, size_screen),
+
+        hm_draw_bbox2(framebuffer, hm_basis2_identity(),
+                      hm_bbox2_cen_size(pos_screen, size_screen),
                       hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 
-    hm_draw_bbox2(framebuffer, hm_bbox2_cen_size(gamestate->mouse_pos, hm_v2(4, 4)),
+    {
+        HMV2 shooter_pos_screen = hm_v2_mul(METERS_TO_PIXELS, gamestate->shooter->pos);
+        HMV2 arrow_dir = hm_v2_sub(gamestate->mouse_pos, shooter_pos_screen);
+        HMBasis2 basis;
+        basis.origin = shooter_pos_screen;
+        basis.xaxis = hm_v2_normalize(arrow_dir);
+        basis.yaxis = hm_v2_perp(basis.xaxis);
+        hm_draw_bbox2(framebuffer, basis,
+                      hm_bbox2_min_size(hm_v2(0, -2), hm_v2(METERS_TO_PIXELS, 2)),
+                      hm_v4(1.0f, 0.0f, 0.0f, 1.0f));
+    }
+
+#if 0
+    gamestate->time += dt;
+    HMBasis2 basis;
+    basis.origin = hm_v2(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+    basis.xaxis = hm_v2(cos(gamestate->time), sin(gamestate->time));
+    basis.yaxis = hm_v2_perp(basis.xaxis);
+    hm_draw_bbox2(framebuffer, basis,
+                  hm_bbox2_cen_size(hm_v2(0, 0), hm_v2(512, 512)),
                   hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
+#endif
 }
 
 #define HM_STATIC

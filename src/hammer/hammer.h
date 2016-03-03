@@ -25,6 +25,8 @@ typedef float f32;
 typedef double f64;
 
 #define HM_ARRAY_COUNT(a) ((usize)(sizeof(a) / sizeof(*(a))))
+#define HM_ARRAY_FOR(a, e) for (usize e = 0; e < HM_ARRAY_COUNT(a); ++e)
+#define HM_SWAP(T, a, b) do { T __hm_swap_temp = a; a = b; b = __hm_swap_temp; } while (0)
 
 #include "hm_math.h"
 #include "hm_memory.h"
