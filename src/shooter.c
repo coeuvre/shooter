@@ -3,6 +3,7 @@
 #define WINDOW_WIDTH 960
 #define WINDOW_HEIGHT 540
 #define METERS_TO_PIXELS 32
+#define PIXELS_TO_METERS (1.0f / METERS_TO_PIXELS)
 
 typedef enum {
     EntityType_Null = 0,
@@ -130,14 +131,16 @@ HM_UPDATE_AND_RENDER {
         gamestate->rope->vel.y = 0;
     }
 
-    gamestate->mouse_pos = hm_v2(input->mouse.x, WINDOW_HEIGHT - input->mouse.y);
+    {
+        HM_V2 mouse_pos_screen = hm_v2(input->mouse.x, WINDOW_HEIGHT - input->mouse.y);
+        gamestate->mouse_pos = hm_v2_mul(PIXELS_TO_METERS, mouse_pos_screen);
+    }
 
     if (input->mouse.left.is_down) {
         gamestate->is_player_charging = true;
     } else {
         if (gamestate->is_player_charging) {
-            HM_V2 shooter_pos_screen = hm_v2_mul(METERS_TO_PIXELS, gamestate->shooter->pos);
-            HM_V2 arrow_dir = hm_v2_normalize(hm_v2_sub(gamestate->mouse_pos, shooter_pos_screen));
+            HM_V2 arrow_dir = hm_v2_normalize(hm_v2_sub(gamestate->mouse_pos, gamestate->shooter->pos));
             f32 arrow_speed = 30 * gamestate->player_charged_power;
             add_arrow(gamestate, gamestate->shooter->pos, hm_v2_mul(arrow_speed, arrow_dir));
         }
@@ -210,9 +213,11 @@ HM_UPDATE_AND_RENDER {
 
     {
         i32 arrow_len = METERS_TO_PIXELS;
-        i32 xoffset = -gamestate->player_charged_power * 0.4 * METERS_TO_PIXELS;
+        HM_V2 arrow_dir = hm_v2_sub(gamestate->mouse_pos, gamestate->shooter->pos);
+
         HM_V2 shooter_pos_screen = hm_v2_mul(METERS_TO_PIXELS, gamestate->shooter->pos);
-        HM_V2 arrow_dir = hm_v2_sub(gamestate->mouse_pos, shooter_pos_screen);
+        i32 xoffset = -gamestate->player_charged_power * 0.4 * METERS_TO_PIXELS;
+
         HM_Basis2 basis;
         basis.origin = shooter_pos_screen;
         basis.xaxis = hm_v2_normalize(arrow_dir);
