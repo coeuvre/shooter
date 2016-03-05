@@ -10,28 +10,28 @@ typedef struct {
     i32 width;
     i32 height;
     i32 pitch;
-} HMTexture;
+} HM_Texture;
 
 #if 0
 typedef struct {
-} HMRenderCommand;
+} HM_RenderCommand;
 
 typedef struct {
-} HMRenderCommandBuffer;
+} HM_RenderCommandBuffer;
 
 typedef struct {
-} HMRenderContext;
+} HM_RenderContext;
 #endif
 
 typedef struct {
-    HMV2 origin;
-    HMV2 xaxis;
-    HMV2 yaxis;
-} HMBasis2;
+    HM_V2 origin;
+    HM_V2 xaxis;
+    HM_V2 yaxis;
+} HM_Basis2;
 
-static inline HMBasis2
+static inline HM_Basis2
 hm_basis2_identity() {
-    HMBasis2 result;
+    HM_Basis2 result;
 
     result.origin = hm_v2_zero();
     result.xaxis = hm_v2(1, 0);
@@ -43,14 +43,14 @@ hm_basis2_identity() {
 typedef struct {
     SDL_Renderer *renderer;
     SDL_Texture *texture;
-} HMRenderer;
+} HM_Renderer;
 
 static inline void
-hm_clear_texture(HMTexture *texture) {
+hm_clear_texture(HM_Texture *texture) {
     memset(texture->pixels, 0,
            sizeof(*texture->pixels) * texture->width * texture->height);
 }
 
-void hm_draw_bbox2(HMTexture *texture, HMBasis2 basis, HMBBox2 bbox, HMV4 color);
+void hm_draw_bbox2(HM_Texture *texture, HM_Basis2 basis, HM_BBox2 bbox, HM_V4 color);
 
 #endif

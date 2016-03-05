@@ -15,12 +15,12 @@ typedef struct {
     void *base;
     usize size;
     usize used;
-} HMMemoryArena;
+} HM_MemoryArena;
 
 typedef struct {
-    HMMemoryArena perm;
-    HMMemoryArena tran;
-} HMGameMemory;
+    HM_MemoryArena perm;
+    HM_MemoryArena tran;
+} HM_GameMemory;
 
 
 #define HM_PUSH_STRUCT(arena, type) ((type *)hm_push_size(arena, sizeof(type)))
@@ -28,7 +28,7 @@ typedef struct {
 #define HM_PUSH_SIZE(arena, size) hm_push_size(arena, (size))
 
 static inline void *
-hm_push_size(HMMemoryArena *arena, usize size) {
+hm_push_size(HM_MemoryArena *arena, usize size) {
     assert(arena->used + size <= arena->size);
 
     void *result = (u8 *)arena->base + arena->used;

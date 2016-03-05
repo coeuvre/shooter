@@ -37,25 +37,25 @@ typedef struct {
     char *title;
     i32 width;
     i32 height;
-} HMWindowConfig;
+} HM_WindowConfig;
 
 typedef struct {
-    HMWindowConfig window;
+    HM_WindowConfig window;
     usize perm_memory_size;
     usize tran_memory_size;
     bool is_exit_on_esc;
-} HMConfig;
+} HM_Config;
 
-#define HM_CONFIG_DEF(name) void name(HMConfig *config)
+#define HM_CONFIG_DEF(name) void name(HM_Config *config)
 #define HM_CONFIG HM_CONFIG_DEF(hm_config)
-typedef HM_CONFIG_DEF(HMConfigFunc);
+typedef HM_CONFIG_DEF(HM_ConfigFunc);
 
-#define HM_INIT_GAME_DEF(name) void name(HMGameMemory *memory)
+#define HM_INIT_GAME_DEF(name) void name(HM_GameMemory *memory)
 #define HM_INIT_GAME HM_INIT_GAME_DEF(hm_init_game)
-typedef HM_INIT_GAME_DEF(HMInitGameFunc);
+typedef HM_INIT_GAME_DEF(HM_InitGameFunc);
 
-#define HM_UPDATE_AND_RENDER_DEF(name) void name(HMGameMemory *memory, HMInput *input, HMTexture *framebuffer)
+#define HM_UPDATE_AND_RENDER_DEF(name) void name(HM_GameMemory *memory, HM_Input *input, HM_Texture *framebuffer)
 #define HM_UPDATE_AND_RENDER HM_UPDATE_AND_RENDER_DEF(hm_update_and_render)
-typedef HM_UPDATE_AND_RENDER_DEF(HMUpdateAndRenderFunc);
+typedef HM_UPDATE_AND_RENDER_DEF(HM_UpdateAndRenderFunc);
 
 #endif

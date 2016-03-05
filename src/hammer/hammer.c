@@ -17,17 +17,17 @@ HM_UPDATE_AND_RENDER_DEF(hm_update_and_render_stub) {
 }
 
 typedef struct {
-    HMConfigFunc *config;
-    HMInitGameFunc *init_game;
-    HMUpdateAndRenderFunc *update_and_render;
-} HMCallback;
+    HM_ConfigFunc *config;
+    HM_InitGameFunc *init_game;
+    HM_UpdateAndRenderFunc *update_and_render;
+} HM_Callback;
 
 int
 main(int argc, char *argv[]) {
     (void)argc;
     (void)argv;
 
-    HMCallback hm = {
+    HM_Callback hm = {
         .config = hm_config_stub,
         .init_game = hm_init_game_stub,
         .update_and_render = hm_update_and_render_stub,
@@ -46,7 +46,7 @@ main(int argc, char *argv[]) {
         return 1;
     }
 
-    HMConfig config = {};
+    HM_Config config = {};
     hm.config(&config);
 
     // On Apple's OS X you must set the NSHighResolutionCapable
@@ -78,17 +78,17 @@ main(int argc, char *argv[]) {
 
     u32 *buffer = calloc(config.window.width * config.window.height, sizeof(u32));
 
-    HMRenderer renderer;
+    HM_Renderer renderer;
     renderer.renderer = sdl_renderer;
     renderer.texture = sdl_texture;
 
-    HMTexture framebuffer;
+    HM_Texture framebuffer;
     framebuffer.pixels = buffer;
     framebuffer.width = config.window.width;
     framebuffer.height = config.window.height;
     framebuffer.pitch = framebuffer.width * 4;
 
-    HMGameMemory memory = {
+    HM_GameMemory memory = {
         .perm = {
             .base = calloc(config.perm_memory_size, sizeof(u8)),
             .size = config.perm_memory_size,
@@ -106,7 +106,7 @@ main(int argc, char *argv[]) {
         hm.init_game(&memory);
     }
 
-    HMInput input = {};
+    HM_Input input = {};
 
     input.dt = 1.0f / 60.0f;
     //u32 target_frametime = dt * 1000.0f;
@@ -140,7 +140,7 @@ main(int argc, char *argv[]) {
         input.mouse.middle.is_down = mouse_button_state & SDL_BUTTON(SDL_BUTTON_MIDDLE);
         input.mouse.right.is_down = mouse_button_state & SDL_BUTTON(SDL_BUTTON_RIGHT);
 
-        if (config.is_exit_on_esc && input.keyboard.keys[HMKey_ESCAPE].is_down) {
+        if (config.is_exit_on_esc && input.keyboard.keys[HM_Key_ESCAPE].is_down) {
             quit = 1;
         }
 

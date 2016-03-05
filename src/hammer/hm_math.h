@@ -11,11 +11,11 @@ typedef union {
         f32 u;
         f32 v;
     };
-} HMV2;
+} HM_V2;
 
-static inline HMV2
+static inline HM_V2
 hm_v2(f32 x, f32 y) {
-    HMV2 result;
+    HM_V2 result;
 
     result.x = x;
     result.y = y;
@@ -23,14 +23,14 @@ hm_v2(f32 x, f32 y) {
     return result;
 }
 
-static inline HMV2
+static inline HM_V2
 hm_v2_zero() {
     return hm_v2(0.0f, 0.0f);
 }
 
-static inline HMV2
-hm_v2_add(HMV2 a, HMV2 b) {
-    HMV2 result;
+static inline HM_V2
+hm_v2_add(HM_V2 a, HM_V2 b) {
+    HM_V2 result;
 
     result.x = a.x + b.x;
     result.y = a.y + b.y;
@@ -38,9 +38,9 @@ hm_v2_add(HMV2 a, HMV2 b) {
     return result;
 }
 
-static inline HMV2
-hm_v2_sub(HMV2 a, HMV2 b) {
-    HMV2 result;
+static inline HM_V2
+hm_v2_sub(HM_V2 a, HM_V2 b) {
+    HM_V2 result;
 
     result.x = a.x - b.x;
     result.y = a.y - b.y;
@@ -48,9 +48,9 @@ hm_v2_sub(HMV2 a, HMV2 b) {
     return result;
 }
 
-static inline HMV2
-hm_v2_mul(f32 a, HMV2 b) {
-    HMV2 result;
+static inline HM_V2
+hm_v2_mul(f32 a, HM_V2 b) {
+    HM_V2 result;
 
     result.x = a * b.x;
     result.y = a * b.y;
@@ -59,15 +59,15 @@ hm_v2_mul(f32 a, HMV2 b) {
 }
 
 static inline f32
-hm_v2_dot(HMV2 a, HMV2 b) {
+hm_v2_dot(HM_V2 a, HM_V2 b) {
     f32 result = a.x * b.x + a.y * b.y;
 
     return result;
 }
 
-static inline HMV2
-hm_v2_perp(HMV2 v) {
-    HMV2 result;
+static inline HM_V2
+hm_v2_perp(HM_V2 v) {
+    HM_V2 result;
 
     result.x = -v.y;
     result.y = v.x;
@@ -75,9 +75,9 @@ hm_v2_perp(HMV2 v) {
     return result;
 }
 
-static inline HMV2
-hm_v2_rperp(HMV2 v) {
-    HMV2 result;
+static inline HM_V2
+hm_v2_rperp(HM_V2 v) {
+    HM_V2 result;
 
     result.x = v.y;
     result.y = -v.x;
@@ -86,24 +86,24 @@ hm_v2_rperp(HMV2 v) {
 }
 
 static inline f32
-hm_get_v2_len_sq(HMV2 v) {
+hm_get_v2_len_sq(HM_V2 v) {
     f32 result = hm_v2_dot(v, v);
 
     return result;
 }
 
 static inline f32
-hm_get_v2_len(HMV2 v) {
+hm_get_v2_len(HM_V2 v) {
     f32 result = sqrtf(hm_get_v2_len_sq(v));
 
     return result;
 }
 
-static inline HMV2
-hm_v2_normalize(HMV2 v) {
+static inline HM_V2
+hm_v2_normalize(HM_V2 v) {
     f32 len = hm_get_v2_len(v);
 
-    HMV2 result = hm_v2_mul(1.0f / len, v);
+    HM_V2 result = hm_v2_mul(1.0f / len, v);
 
     return result;
 }
@@ -112,17 +112,17 @@ typedef struct {
     i32 exist;
     f32 x;
     f32 y;
-} HMLinearSystem2Solution;
+} HM_LinearSystem2Solution;
 
-static inline HMLinearSystem2Solution
-hm_solve_linear_system2(HMV2 a, HMV2 b, HMV2 c) {
-    HMLinearSystem2Solution result = {};
+static inline HM_LinearSystem2Solution
+hm_solve_linear_system2(HM_V2 a, HM_V2 b, HM_V2 c) {
+    HM_LinearSystem2Solution result = {};
 
     f32 d = a.x * b.y - a.y * b.x;
 
     if (d != 0.0f) {
         result.exist = 1;
-        HMV2 solution = hm_v2((c.x * b.y - c.y * b.x) / d,
+        HM_V2 solution = hm_v2((c.x * b.y - c.y * b.x) / d,
                               (a.x * c.y - a.y * c.x) / d);
         result.x = solution.x;
         result.y = solution.y;
@@ -132,13 +132,13 @@ hm_solve_linear_system2(HMV2 a, HMV2 b, HMV2 c) {
 }
 
 typedef struct {
-    HMV2 a;
-    HMV2 b;
-} HMLine2;
+    HM_V2 a;
+    HM_V2 b;
+} HM_Line2;
 
-static inline HMLine2
-hm_line2(HMV2 a, HMV2 b) {
-    HMLine2 result;
+static inline HM_Line2
+hm_line2(HM_V2 a, HM_V2 b) {
+    HM_Line2 result;
 
     result.a = a;
     result.b = b;
@@ -147,24 +147,24 @@ hm_line2(HMV2 a, HMV2 b) {
 }
 
 typedef struct {
-    HMV2 o;
-    HMV2 d;
-} HMRay2;
+    HM_V2 o;
+    HM_V2 d;
+} HM_Ray2;
 
 typedef struct {
     i32 exist;
     f32 t;
-} HMIntersection;
+} HM_Intersection;
 
-static inline HMIntersection
-hm_ray2_line2_intersection_test(HMRay2 ray, HMLine2 line) {
-    HMIntersection result = {};
+static inline HM_Intersection
+hm_ray2_line2_intersection_test(HM_Ray2 ray, HM_Line2 line) {
+    HM_Intersection result = {};
 
-    HMV2 a = ray.d;
-    HMV2 b = hm_v2_sub(line.a, line.b);
-    HMV2 c = hm_v2_sub(line.a, ray.o);
+    HM_V2 a = ray.d;
+    HM_V2 b = hm_v2_sub(line.a, line.b);
+    HM_V2 c = hm_v2_sub(line.a, ray.o);
 
-    HMLinearSystem2Solution solution = hm_solve_linear_system2(a, b, c);
+    HM_LinearSystem2Solution solution = hm_solve_linear_system2(a, b, c);
     if (solution.exist &&
         solution.y >= 0 && solution.y <= 1.0 &&
         solution.x >= 0.0)
@@ -176,9 +176,9 @@ hm_ray2_line2_intersection_test(HMRay2 ray, HMLine2 line) {
     return result;
 }
 
-static inline HMRay2
-hm_ray2(HMV2 o, HMV2 d) {
-    HMRay2 result;
+static inline HM_Ray2
+hm_ray2(HM_V2 o, HM_V2 d) {
+    HM_Ray2 result;
 
     result.o = o;
     result.d = d;
@@ -187,13 +187,13 @@ hm_ray2(HMV2 o, HMV2 d) {
 }
 
 typedef struct {
-    HMV2 min;
-    HMV2 max;
-} HMBBox2;
+    HM_V2 min;
+    HM_V2 max;
+} HM_BBox2;
 
-static inline HMBBox2
-hm_bbox2(HMV2 min, HMV2 max) {
-    HMBBox2 result;
+static inline HM_BBox2
+hm_bbox2(HM_V2 min, HM_V2 max) {
+    HM_BBox2 result;
 
     result.min = min;
     result.max = max;
@@ -201,9 +201,9 @@ hm_bbox2(HMV2 min, HMV2 max) {
     return result;
 }
 
-static inline HMBBox2
-hm_bbox2_min_size(HMV2 min, HMV2 size) {
-    HMBBox2 result;
+static inline HM_BBox2
+hm_bbox2_min_size(HM_V2 min, HM_V2 size) {
+    HM_BBox2 result;
 
     result.min = min;
     result.max = hm_v2_add(min, size);
@@ -211,28 +211,28 @@ hm_bbox2_min_size(HMV2 min, HMV2 size) {
     return result;
 }
 
-static inline HMBBox2
-hm_bbox2_cen_size(HMV2 cen, HMV2 size) {
-    HMBBox2 result;
+static inline HM_BBox2
+hm_bbox2_cen_size(HM_V2 cen, HM_V2 size) {
+    HM_BBox2 result;
 
-    HMV2 halfsize = hm_v2_mul(0.5f, size);
+    HM_V2 halfsize = hm_v2_mul(0.5f, size);
     result.min = hm_v2_sub(cen, halfsize);
     result.max = hm_v2_add(cen, halfsize);
 
     return result;
 }
 
-static inline HMV2
-hm_get_bbox2_cen(HMBBox2 rect) {
+static inline HM_V2
+hm_get_bbox2_cen(HM_BBox2 rect) {
     // rect.min + 0.5f * (rect.max - rect.min)
-    HMV2 result = hm_v2_add(rect.min, hm_v2_mul(0.5f, hm_v2_sub(rect.max, rect.min)));
+    HM_V2 result = hm_v2_add(rect.min, hm_v2_mul(0.5f, hm_v2_sub(rect.max, rect.min)));
 
     return result;
 }
 
-static inline HMV2
-hm_get_bbox2_size(HMBBox2 rect) {
-    HMV2 result = hm_v2_sub(rect.max, rect.min);
+static inline HM_V2
+hm_get_bbox2_size(HM_BBox2 rect) {
+    HM_V2 result = hm_v2_sub(rect.max, rect.min);
 
     return result;
 }
@@ -249,7 +249,7 @@ typedef union {
         f32 g;
         f32 b;
     };
-} HMV3;
+} HM_V3;
 
 typedef union {
     struct {
@@ -267,16 +267,16 @@ typedef union {
                 f32 b;
             };
 
-            HMV3 rgb;
+            HM_V3 rgb;
         };
 
         f32 a;
     };
-} HMV4;
+} HM_V4;
 
-static inline HMV4
+static inline HM_V4
 hm_v4(f32 x, f32 y, f32 z, f32 w) {
-    HMV4 result;
+    HM_V4 result;
 
     result.x = x;
     result.y = y;
