@@ -275,6 +275,9 @@ typedef struct {
 typedef struct {
     i32 x;
     i32 y;
+    HMKeyState left;
+    HMKeyState middle;
+    HMKeyState right;
 } HMMouse;
 
 typedef struct {

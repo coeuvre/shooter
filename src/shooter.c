@@ -36,6 +36,9 @@ typedef struct {
     HMV2 mouse_pos;
 
     f32 time;
+
+    bool is_player_charging;
+    f32 player_charged_power;
 } GameState;
 
 static Entity *
@@ -113,9 +116,11 @@ HM_INIT_GAME {
 HM_UPDATE_AND_RENDER {
     f32 dt = input->dt;
 
-    hm_clear_texture(framebuffer);
-
     GameState *gamestate = memory->perm.base;
+
+    gamestate->time += dt;
+
+    hm_clear_texture(framebuffer);
 
     if (input->keyboard.keys[HMKey_W].is_down) {
         gamestate->rope->vel.y = 10;
@@ -127,8 +132,24 @@ HM_UPDATE_AND_RENDER {
 
     gamestate->mouse_pos = hm_v2(input->mouse.x, WINDOW_HEIGHT - input->mouse.y);
 
-    if (input->keyboard.keys[HMKey_SPACE].is_down) {
-        add_arrow(gamestate, gamestate->shooter->pos, hm_v2(30, 0));
+    if (input->mouse.left.is_down) {
+        gamestate->is_player_charging = true;
+    } else {
+        if (gamestate->is_player_charging) {
+            HMV2 shooter_pos_screen = hm_v2_mul(METERS_TO_PIXELS, gamestate->shooter->pos);
+            HMV2 arrow_dir = hm_v2_normalize(hm_v2_sub(gamestate->mouse_pos, shooter_pos_screen));
+            f32 arrow_speed = 30 * gamestate->player_charged_power;
+            add_arrow(gamestate, gamestate->shooter->pos, hm_v2_mul(arrow_speed, arrow_dir));
+        }
+        gamestate->is_player_charging = false;
+        gamestate->player_charged_power = 0.0f;
+    }
+
+    if (gamestate->is_player_charging) {
+        gamestate->player_charged_power += 0.05;
+        if (gamestate->player_charged_power > 1.0f) {
+            gamestate->player_charged_power = 1.0f;
+        }
     }
 
     for (usize entity_index = 0; entity_index < gamestate->entity_count; ++entity_index) {
@@ -166,15 +187,30 @@ HM_UPDATE_AND_RENDER {
             default: break;
         }
 
-        HMV2 pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
-        HMV2 size_screen = hm_v2_mul(METERS_TO_PIXELS, entity->size);
+        if (entity->type == EntityType_Arrow) {
+            i32 arrow_len = METERS_TO_PIXELS;
+            HMV2 arrow_pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
+            HMV2 arrow_dir = entity->vel;
+            HMBasis2 basis;
+            basis.origin = arrow_pos_screen;
+            basis.xaxis = hm_v2_normalize(arrow_dir);
+            basis.yaxis = hm_v2_perp(basis.xaxis);
+            hm_draw_bbox2(framebuffer, basis,
+                          hm_bbox2_min_size(hm_v2(-arrow_len, -2), hm_v2(arrow_len, 2)),
+                          hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
+        } else {
+            HMV2 pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
+            HMV2 size_screen = hm_v2_mul(METERS_TO_PIXELS, entity->size);
 
-        hm_draw_bbox2(framebuffer, hm_basis2_identity(),
-                      hm_bbox2_cen_size(pos_screen, size_screen),
-                      hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
+            hm_draw_bbox2(framebuffer, hm_basis2_identity(),
+                          hm_bbox2_cen_size(pos_screen, size_screen),
+                          hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
+        }
     }
 
     {
+        i32 arrow_len = METERS_TO_PIXELS;
+        i32 xoffset = -gamestate->player_charged_power * 0.4 * METERS_TO_PIXELS;
         HMV2 shooter_pos_screen = hm_v2_mul(METERS_TO_PIXELS, gamestate->shooter->pos);
         HMV2 arrow_dir = hm_v2_sub(gamestate->mouse_pos, shooter_pos_screen);
         HMBasis2 basis;
@@ -182,19 +218,20 @@ HM_UPDATE_AND_RENDER {
         basis.xaxis = hm_v2_normalize(arrow_dir);
         basis.yaxis = hm_v2_perp(basis.xaxis);
         hm_draw_bbox2(framebuffer, basis,
-                      hm_bbox2_min_size(hm_v2(0, -2), hm_v2(METERS_TO_PIXELS, 2)),
-                      hm_v4(1.0f, 0.0f, 0.0f, 1.0f));
+                      hm_bbox2_min_size(hm_v2(xoffset, -2), hm_v2(arrow_len, 2)),
+                      hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
     }
 
 #if 0
-    gamestate->time += dt;
-    HMBasis2 basis;
-    basis.origin = hm_v2(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
-    basis.xaxis = hm_v2(cos(gamestate->time), sin(gamestate->time));
-    basis.yaxis = hm_v2_perp(basis.xaxis);
-    hm_draw_bbox2(framebuffer, basis,
-                  hm_bbox2_cen_size(hm_v2(0, 0), hm_v2(512, 512)),
-                  hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
+    {
+        HMBasis2 basis;
+        basis.origin = hm_v2(WINDOW_WIDTH / 2, WINDOW_HEIGHT / 2);
+        basis.xaxis = hm_v2(cos(gamestate->time), sin(gamestate->time));
+        basis.yaxis = hm_v2_perp(basis.xaxis);
+        hm_draw_bbox2(framebuffer, basis,
+                      hm_bbox2_cen_size(hm_v2(0, 0), hm_v2(512, 512)),
+                      hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
+    }
 #endif
 }
 

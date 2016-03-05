@@ -135,7 +135,10 @@ main(int argc, char *argv[]) {
             input.keyboard.keys[key_index].is_down = keys[key_index];
         }
 
-        SDL_GetMouseState(&input.mouse.x, &input.mouse.y);
+        u32 mouse_button_state = SDL_GetMouseState(&input.mouse.x, &input.mouse.y);
+        input.mouse.left.is_down = mouse_button_state & SDL_BUTTON(SDL_BUTTON_LEFT);
+        input.mouse.middle.is_down = mouse_button_state & SDL_BUTTON(SDL_BUTTON_MIDDLE);
+        input.mouse.right.is_down = mouse_button_state & SDL_BUTTON(SDL_BUTTON_RIGHT);
 
         if (config.is_exit_on_esc && input.keyboard.keys[HMKey_ESCAPE].is_down) {
             quit = 1;
