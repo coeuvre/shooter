@@ -154,11 +154,12 @@ typedef struct {
 typedef struct {
     i32 exist;
     f32 t;
-} HM_Intersection;
+    HM_V2 normal;
+} HM_Intersection2;
 
-static inline HM_Intersection
+static inline HM_Intersection2
 hm_ray2_line2_intersection_test(HM_Ray2 ray, HM_Line2 line) {
-    HM_Intersection result = {};
+    HM_Intersection2 result = {};
 
     HM_V2 a = ray.d;
     HM_V2 b = hm_v2_sub(line.a, line.b);
@@ -171,6 +172,7 @@ hm_ray2_line2_intersection_test(HM_Ray2 ray, HM_Line2 line) {
     {
         result.exist = 1;
         result.t = solution.x;
+        result.normal = hm_v2_perp(hm_v2_sub(line.b, line.a));
     }
 
     return result;
@@ -223,16 +225,64 @@ hm_bbox2_cen_size(HM_V2 cen, HM_V2 size) {
 }
 
 static inline HM_V2
-hm_get_bbox2_cen(HM_BBox2 rect) {
-    // rect.min + 0.5f * (rect.max - rect.min)
-    HM_V2 result = hm_v2_add(rect.min, hm_v2_mul(0.5f, hm_v2_sub(rect.max, rect.min)));
+hm_get_bbox2_cen(HM_BBox2 bbox) {
+    // bbox.min + 0.5f * (bbox.max - bbox.min)
+    HM_V2 result = hm_v2_add(bbox.min, hm_v2_mul(0.5f, hm_v2_sub(bbox.max, bbox.min)));
 
     return result;
 }
 
 static inline HM_V2
-hm_get_bbox2_size(HM_BBox2 rect) {
-    HM_V2 result = hm_v2_sub(rect.max, rect.min);
+hm_get_bbox2_size(HM_BBox2 bbox) {
+    HM_V2 result = hm_v2_sub(bbox.max, bbox.min);
+
+    return result;
+}
+
+static inline bool
+hm_is_bbox2_contains_point(HM_BBox2 bbox, HM_V2 point) {
+    bool result = point.x >= bbox.min.x && point.x < bbox.max.x &&
+                  point.y >= bbox.min.y && point.y < bbox.max.y;
+
+    return result;
+}
+
+static inline HM_Intersection2
+hm_ray2_bbox2_intersection_test(HM_Ray2 ray, HM_BBox2 bbox) {
+    HM_Intersection2 result = {};
+
+    HM_Line2 lines[] = {
+        // Top
+        hm_line2(hm_v2(bbox.min.x, bbox.max.y), bbox.max),
+        // Right
+        hm_line2(hm_v2(bbox.max.x, bbox.min.y), bbox.max),
+        // Left
+        hm_line2(bbox.min, hm_v2(bbox.min.x, bbox.max.y)),
+        // Bottom
+        hm_line2(bbox.min, hm_v2(bbox.max.x, bbox.min.y)),
+    };
+
+    HM_V2 normals[] = {
+        hm_v2(0, 1),
+        hm_v2(1, 0),
+        hm_v2(-1, 0),
+        hm_v2(0, -1),
+    };
+
+    HM_ARRAY_FOR(lines, line_index) {
+        HM_Line2 line = lines[line_index];
+        HM_V2 normal = normals[line_index];
+        if (hm_v2_dot(ray.d, normal) < 0.0f) {
+            HM_Intersection2 intersection = hm_ray2_line2_intersection_test(ray, line);
+            if (intersection.exist) {
+                if (!result.exist || intersection.t < result.t) {
+                    result.exist = true;
+                    result.t = intersection.t;
+                    result.normal = normal;
+                }
+            }
+        }
+    }
 
     return result;
 }

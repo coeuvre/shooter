@@ -1,5 +1,6 @@
 #include "hammer/hammer.h"
 
+#define MAX_ENTITY_COUNT 1024
 #define WINDOW_WIDTH 960
 #define WINDOW_HEIGHT 540
 #define METERS_TO_PIXELS 32
@@ -7,6 +8,8 @@
 
 typedef enum {
     EntityType_Null = 0,
+    EntityType_Space,
+    EntityType_Ground,
     EntityType_Rope,
     EntityType_Shooter,
     EntityType_Arrow,
@@ -16,6 +19,7 @@ typedef enum {
 enum {
     EntityFlag_Removed = (1 << 0),
     EntityFlag_Collide = (1 << 1),
+    EntityFlag_Static = (1 << 2),
 };
 
 typedef struct {
@@ -25,12 +29,33 @@ typedef struct {
     HM_V2 pos;
     HM_V2 size;
     HM_V2 vel;
+    f32 lifetime;
 } Entity;
 
-typedef struct {
-    Entity entities[1024];
-    usize entity_count;
+static inline void
+set_entity_flags(Entity *entity, u32 flags) {
+    entity->flags |= flags;
+}
 
+static inline bool
+is_entity_flags_set(Entity *e, u32 flags) {
+    bool result = e->flags & flags;
+    return result;
+}
+
+static inline HM_BBox2
+get_entity_bbox(Entity *entity) {
+    return hm_bbox2_cen_size(entity->pos, entity->size);
+}
+
+typedef struct {
+    Entity entities[MAX_ENTITY_COUNT];
+    u32 entity_count;
+
+    u32 free_entities[MAX_ENTITY_COUNT];
+    u32 free_entity_count;
+
+    Entity *space;
     Entity *rope;
     Entity *shooter;
 
@@ -42,11 +67,24 @@ typedef struct {
     f32 player_charged_power;
 } GameState;
 
+static void
+init_game_state(GameState *gamestate) {
+    // The entity index 0 is considerd null entity
+    for (u32 free_entity_index = MAX_ENTITY_COUNT - 1; free_entity_index != 0; --free_entity_index) {
+        gamestate->free_entities[gamestate->free_entity_count++] = free_entity_index;
+    }
+}
+
 static Entity *
 add_entity(GameState *gamestate, EntityType type, HM_V2 pos) {
     assert(gamestate->entity_count < HM_ARRAY_COUNT(gamestate->entities));
+    assert(gamestate->free_entity_count > 0);
 
-    u32 entity_index = gamestate->entity_count++;
+    u32 entity_index = gamestate->free_entities[--gamestate->free_entity_count];
+    if (entity_index >= gamestate->entity_count) {
+        gamestate->entity_count = entity_index + 1;
+    }
+
     Entity *entity = gamestate->entities + entity_index;
     *entity = (Entity){
         .index = entity_index,
@@ -55,6 +93,29 @@ add_entity(GameState *gamestate, EntityType type, HM_V2 pos) {
     };
 
     return entity;
+}
+
+static void
+remove_entity(GameState *gamestate, Entity *entity) {
+    assert(gamestate->free_entity_count < MAX_ENTITY_COUNT);
+
+    gamestate->free_entities[gamestate->free_entity_count++] = entity->index;
+
+    set_entity_flags(entity, EntityFlag_Removed);
+}
+
+static Entity *
+add_space(GameState *gamestate, HM_BBox2 bbox) {
+    Entity *space = add_entity(gamestate, EntityType_Space, hm_get_bbox2_cen(bbox));
+    space->size = hm_get_bbox2_size(bbox);
+    return space;
+}
+
+static Entity *
+add_ground(GameState *gamestate, HM_BBox2 bbox) {
+    Entity *ground = add_entity(gamestate, EntityType_Ground, hm_get_bbox2_cen(bbox));
+    ground->size = hm_get_bbox2_size(bbox);
+    return ground;
 }
 
 static Entity *
@@ -76,6 +137,7 @@ add_arrow(GameState *gamestate, HM_V2 pos, HM_V2 vel) {
     Entity *arrow = add_entity(gamestate, EntityType_Arrow, pos);
     arrow->size = hm_v2(0.08f, 0.08f);
     arrow->vel = vel;
+    arrow->lifetime = 2.0f;
     return arrow;
 }
 
@@ -87,14 +149,14 @@ add_target(GameState *gamestate, HM_V2 pos) {
 }
 
 static void
-init_game_state(GameState *gamestate) {
-    // Add a null entity at index 0
-    add_entity(gamestate, EntityType_Null, hm_v2(0, 0));
+build_game_scene(GameState *gamestate) {
+    gamestate->space = add_space(gamestate, hm_bbox2_min_size(hm_v2(-10, -10), hm_v2(60, 30)));
 
-    gamestate->rope = add_rope(gamestate, hm_bbox2(hm_v2(1, 8),
-                               hm_v2(1 + 0.05, 28)));
+    add_ground(gamestate, hm_bbox2_min_size(hm_v2(-10, 0), hm_v2(60, 1)));
 
-    HM_BBox2 bbox_rope = hm_bbox2_cen_size(gamestate->rope->pos, gamestate->rope->size);
+    gamestate->rope = add_rope(gamestate, hm_bbox2(hm_v2(1, 8), hm_v2(1 + 0.05, 28)));
+
+    HM_BBox2 bbox_rope = get_entity_bbox(gamestate->rope);
     gamestate->shooter = add_shooter(gamestate, hm_v2(gamestate->rope->pos.x, bbox_rope.min.y));
 
     add_target(gamestate, hm_v2(28, 9));
@@ -112,6 +174,7 @@ HM_CONFIG {
 HM_INIT_GAME {
     GameState *gamestate = HM_PUSH_STRUCT(&memory->perm, GameState);
     init_game_state(gamestate);
+    build_game_scene(gamestate);
 }
 
 HM_UPDATE_AND_RENDER {
@@ -136,7 +199,7 @@ HM_UPDATE_AND_RENDER {
         gamestate->mouse_pos = hm_v2_mul(PIXELS_TO_METERS, mouse_pos_screen);
     }
 
-    if (input->mouse.left.is_down) {
+    if (input->mouse.left.is_down || input->keyboard.keys[HM_Key_SPACE].is_down) {
         gamestate->is_player_charging = true;
     } else {
         if (gamestate->is_player_charging) {
@@ -158,12 +221,66 @@ HM_UPDATE_AND_RENDER {
     for (usize entity_index = 0; entity_index < gamestate->entity_count; ++entity_index) {
         Entity *entity = gamestate->entities + entity_index;
 
-        entity->pos = hm_v2_add(entity->pos, hm_v2_mul(dt, entity->vel));
+        if (is_entity_flags_set(entity, EntityFlag_Removed)) {
+            continue;
+        }
 
+        // Move entity
+        if (!is_entity_flags_set(entity, EntityFlag_Static)) {
+            switch (entity->type) {
+                case EntityType_Arrow: {
+                    // Apply gravity
+                    entity->vel = hm_v2_add(entity->vel, hm_v2(0, -9.8f * dt));
+
+                    f32 min_t = 1.0;
+                    HM_V2 delta_pos = hm_v2_mul(dt, entity->vel);
+                    Entity *hit_entity = 0;
+
+                    if (hm_get_v2_len_sq(delta_pos) > 0.0f) {
+                        for (usize test_entity_index = 0; test_entity_index < gamestate->entity_count; ++test_entity_index) {
+                            if (test_entity_index == entity_index) {
+                                continue;
+                            }
+
+                            Entity *test_entity = gamestate->entities + test_entity_index;
+
+                            if (test_entity->type != EntityType_Ground) {
+                                continue;
+                            }
+
+                            HM_BBox2 bound = hm_bbox2_cen_size(hm_v2_zero(), test_entity->size);
+                            HM_V2 entity_pos_rel_test_entity = hm_v2_sub(entity->pos, test_entity->pos);
+                            HM_Ray2 motion = hm_ray2(entity_pos_rel_test_entity, delta_pos);
+                            HM_Intersection2 intersection = hm_ray2_bbox2_intersection_test(motion, bound);
+                            if (intersection.exist && intersection.t < min_t) {
+                                min_t = intersection.t;
+                                hit_entity = test_entity;
+                            }
+                        }
+
+
+                        entity->pos = hm_v2_add(entity->pos, hm_v2_mul(min_t, delta_pos));
+
+                        if (hit_entity) {
+                            set_entity_flags(entity, EntityFlag_Static);
+                        }
+                    }
+                } break;
+
+                default: {
+                    entity->pos = hm_v2_add(entity->pos, hm_v2_mul(dt, entity->vel));
+                } break;
+            }
+        }
+
+        // Entity update logic
         switch (entity->type) {
             case EntityType_Rope: {
                 Entity *rope = entity;
-                HM_BBox2 bbox_rope = hm_bbox2_cen_size(rope->pos, rope->size);
+
+                HM_BBox2 bbox_rope = get_entity_bbox(rope);
+
+                // Limit the rope position
                 if (bbox_rope.min.y <= 2.0f) {
                     bbox_rope.min.y = 2.0f;
                 }
@@ -178,36 +295,51 @@ HM_UPDATE_AND_RENDER {
             case EntityType_Shooter: {
                 Entity *shooter = entity;
                 Entity *rope = gamestate->rope;
-                HM_BBox2 bbox_rope = hm_bbox2_cen_size(rope->pos, rope->size);
+                HM_BBox2 bbox_rope = get_entity_bbox(rope);
                 shooter->pos.y = bbox_rope.min.y;
             } break;
 
             case EntityType_Arrow: {
-                // Apply gravity
-                entity->vel = hm_v2_add(entity->vel, hm_v2(0, -9.8f * dt));
+                if (is_entity_flags_set(entity, EntityFlag_Static)) {
+                    entity->lifetime -= dt;
+                }
+
+                HM_BBox2 bbox_space = get_entity_bbox(gamestate->space);
+                if (entity->lifetime <= 0.0f || !hm_is_bbox2_contains_point(bbox_space, entity->pos)) {
+                    remove_entity(gamestate, entity);
+                }
             };
 
             default: break;
         }
 
-        if (entity->type == EntityType_Arrow) {
-            i32 arrow_len = METERS_TO_PIXELS;
-            HM_V2 arrow_pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
-            HM_V2 arrow_dir = entity->vel;
-            HM_Basis2 basis;
-            basis.origin = arrow_pos_screen;
-            basis.xaxis = hm_v2_normalize(arrow_dir);
-            basis.yaxis = hm_v2_perp(basis.xaxis);
-            hm_draw_bbox2(framebuffer, basis,
-                          hm_bbox2_min_size(hm_v2(-arrow_len, -2), hm_v2(arrow_len, 2)),
-                          hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
-        } else {
-            HM_V2 pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
-            HM_V2 size_screen = hm_v2_mul(METERS_TO_PIXELS, entity->size);
+        // Render entity
+        switch (entity->type) {
+            case EntityType_Space: {
+                // DO NOT DRAW SPACE
+            } break;
 
-            hm_draw_bbox2(framebuffer, hm_basis2_identity(),
-                          hm_bbox2_cen_size(pos_screen, size_screen),
-                          hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
+            case EntityType_Arrow: {
+                i32 arrow_len = METERS_TO_PIXELS;
+                HM_V2 arrow_pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
+                HM_V2 arrow_dir = entity->vel;
+                HM_Basis2 basis;
+                basis.origin = arrow_pos_screen;
+                basis.xaxis = hm_v2_normalize(arrow_dir);
+                basis.yaxis = hm_v2_perp(basis.xaxis);
+                hm_draw_bbox2(framebuffer, basis,
+                              hm_bbox2_min_size(hm_v2(-arrow_len, -2), hm_v2(arrow_len, 2)),
+                              hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
+            } break;
+
+            default: {
+                HM_V2 pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
+                HM_V2 size_screen = hm_v2_mul(METERS_TO_PIXELS, entity->size);
+
+                hm_draw_bbox2(framebuffer, hm_basis2_identity(),
+                              hm_bbox2_cen_size(pos_screen, size_screen),
+                              hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
+            } break;
         }
     }
 
@@ -238,6 +370,8 @@ HM_UPDATE_AND_RENDER {
                       hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
     }
 #endif
+
+    printf("entity count: %d\n", gamestate->entity_count);
 }
 
 #define HM_STATIC
