@@ -16,6 +16,11 @@ typedef enum {
     EntityType_Target,
 } EntityType;
 
+typedef enum {
+    TargetType_Walking,
+    TargetType_Flying,
+} TargetType;
+
 enum {
     EntityFlag_Removed = (1 << 0),
     EntityFlag_Collide = (1 << 1),
@@ -28,8 +33,15 @@ typedef struct {
     HM_V2 pos;
     HM_V2 size;
     HM_V2 vel;
+
+    // For arrow
     f32 lifetime;
     bool is_on_ground;
+
+    // For target
+    TargetType target_type;
+    HM_V2 original_pos;
+    f32 flying_height_delta;
 } Entity;
 
 static inline void
@@ -143,10 +155,23 @@ add_arrow(GameState *gamestate, HM_V2 pos, HM_V2 vel) {
 }
 
 static Entity *
-add_target(GameState *gamestate, HM_V2 pos) {
-    Entity *shooter = add_entity(gamestate, EntityType_Target, pos);
-    shooter->size = hm_v2(0.6f, 1.2f);
-    return shooter;
+add_walking_target(GameState *gamestate) {
+    Entity *target = add_entity(gamestate, EntityType_Target, hm_v2(28, 1.5));
+    target->size = hm_v2(0.6f, 1.2f);
+    target->vel = hm_v2(-2, 0);
+    target->target_type = TargetType_Walking;
+    return target;
+}
+
+static Entity *
+add_flying_target(GameState *gamestate) {
+    Entity *target = add_entity(gamestate, EntityType_Target, hm_v2(28, 9));
+    target->size = hm_v2(0.6f, 1.2f);
+    target->vel = hm_v2(-2, 0);
+    target->target_type = TargetType_Flying;
+    target->original_pos = target->pos;
+    target->flying_height_delta = 2;
+    return target;
 }
 
 static void
@@ -160,7 +185,8 @@ build_game_scene(GameState *gamestate) {
     HM_BBox2 bbox_rope = get_entity_bbox(gamestate->rope);
     gamestate->shooter = add_shooter(gamestate, hm_v2(gamestate->rope->pos.x, bbox_rope.min.y));
 
-    add_target(gamestate, hm_v2(28, 9));
+    add_walking_target(gamestate);
+    add_flying_target(gamestate);
 }
 
 HM_CONFIG {
@@ -253,7 +279,9 @@ HM_UPDATE_AND_RENDER {
 
                             Entity *test_entity = gamestate->entities + test_entity_index;
 
-                            if (test_entity->type != EntityType_Ground) {
+                            if (!(test_entity->type == EntityType_Ground ||
+                                  test_entity->type == EntityType_Target))
+                            {
                                 continue;
                             }
 
@@ -271,7 +299,13 @@ HM_UPDATE_AND_RENDER {
                         entity->pos = hm_v2_add(entity->pos, hm_v2_mul(min_t, delta_pos));
 
                         if (hit_entity) {
-                            entity->is_on_ground = true;
+                            if (hit_entity->type == EntityType_Ground) {
+                                entity->is_on_ground = true;
+                            } else {
+                                // hit_entity->type == EntityType_Target
+                                remove_entity(gamestate, hit_entity);
+                                remove_entity(gamestate, entity);
+                            }
                         }
                     }
                 }
@@ -317,7 +351,13 @@ HM_UPDATE_AND_RENDER {
                 if (entity->lifetime <= 0.0f || !hm_is_bbox2_contains_point(bbox_space, entity->pos)) {
                     remove_entity(gamestate, entity);
                 }
-            };
+            } break;
+
+            case EntityType_Target: {
+                if (entity->target_type == TargetType_Flying) {
+                    entity->pos.y = sin(2 * gamestate->time) * entity->flying_height_delta + entity->original_pos.y;
+                }
+            } break;
 
             default: break;
         }
@@ -379,9 +419,9 @@ HM_UPDATE_AND_RENDER {
                       hm_bbox2_cen_size(hm_v2(0, 0), hm_v2(512, 512)),
                       hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
     }
-#endif
 
     printf("entity count: %d\n", gamestate->entity_count);
+#endif
 }
 
 #define HM_STATIC
