@@ -19,7 +19,6 @@ typedef enum {
 enum {
     EntityFlag_Removed = (1 << 0),
     EntityFlag_Collide = (1 << 1),
-    EntityFlag_Static = (1 << 2),
 };
 
 typedef struct {
@@ -30,6 +29,7 @@ typedef struct {
     HM_V2 size;
     HM_V2 vel;
     f32 lifetime;
+    bool is_on_ground;
 } Entity;
 
 static inline void
@@ -226,9 +226,9 @@ HM_UPDATE_AND_RENDER {
         }
 
         // Move entity
-        if (!is_entity_flags_set(entity, EntityFlag_Static)) {
-            switch (entity->type) {
-                case EntityType_Arrow: {
+        switch (entity->type) {
+            case EntityType_Arrow: {
+                if (!entity->is_on_ground) {
                     // Apply gravity
                     entity->vel = hm_v2_add(entity->vel, hm_v2(0, -9.8f * dt));
 
@@ -262,15 +262,15 @@ HM_UPDATE_AND_RENDER {
                         entity->pos = hm_v2_add(entity->pos, hm_v2_mul(min_t, delta_pos));
 
                         if (hit_entity) {
-                            set_entity_flags(entity, EntityFlag_Static);
+                            entity->is_on_ground = true;
                         }
                     }
-                } break;
+                }
+            } break;
 
-                default: {
-                    entity->pos = hm_v2_add(entity->pos, hm_v2_mul(dt, entity->vel));
-                } break;
-            }
+            default: {
+                entity->pos = hm_v2_add(entity->pos, hm_v2_mul(dt, entity->vel));
+            } break;
         }
 
         // Entity update logic
@@ -300,7 +300,7 @@ HM_UPDATE_AND_RENDER {
             } break;
 
             case EntityType_Arrow: {
-                if (is_entity_flags_set(entity, EntityFlag_Static)) {
+                if (entity->is_on_ground) {
                     entity->lifetime -= dt;
                 }
 
