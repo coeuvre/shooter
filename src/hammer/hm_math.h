@@ -146,6 +146,19 @@ hm_line2(HM_V2 a, HM_V2 b) {
     return result;
 }
 
+static inline f32
+hm_get_distance_from_point2_to_line(HM_V2 point, HM_Line2 line) {
+    // ax + by = c
+    f32 a = line.b.y - line.a.y;
+    f32 b = line.a.x - line.b.x;
+    f32 c = line.a.x * line.b.y - line.b.x * line.a.y;
+    f32 d = fabs(a * point.x + b * point.y - c);
+
+    f32 result =  d / sqrtf(a * a + b * b);
+
+    return result;
+}
+
 typedef struct {
     HM_V2 o;
     HM_V2 d;
@@ -301,6 +314,17 @@ typedef union {
     };
 } HM_V3;
 
+static inline HM_V3
+hm_v3_mul(f32 a, HM_V3 b) {
+    HM_V3 result;
+
+    result.x = a * b.x;
+    result.y = a * b.y;
+    result.z = a * b.z;
+
+    return result;
+}
+
 typedef union {
     struct {
         f32 x;
@@ -332,6 +356,18 @@ hm_v4(f32 x, f32 y, f32 z, f32 w) {
     result.y = y;
     result.z = z;
     result.w = w;
+
+    return result;
+}
+
+static inline HM_V4
+hm_v4_mul(f32 a, HM_V4 b) {
+    HM_V4 result;
+
+    result.x = a * b.x;
+    result.y = a * b.y;
+    result.z = a * b.z;
+    result.w = a * b.w;
 
     return result;
 }

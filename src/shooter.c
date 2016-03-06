@@ -62,6 +62,7 @@ typedef struct {
     HM_V2 mouse_pos;
 
     f32 time;
+    bool paused;
 
     bool is_player_charging;
     f32 player_charged_power;
@@ -183,6 +184,14 @@ HM_UPDATE_AND_RENDER {
     GameState *gamestate = memory->perm.base;
 
     gamestate->time += dt;
+
+    if (input->keyboard.keys[HM_Key_P].is_pressed) {
+        gamestate->paused = !gamestate->paused;
+    }
+
+    if (gamestate->paused) {
+        return;
+    }
 
     hm_clear_texture(framebuffer);
 
@@ -321,6 +330,7 @@ HM_UPDATE_AND_RENDER {
 
             case EntityType_Arrow: {
                 i32 arrow_len = METERS_TO_PIXELS;
+                f32 arrow_size = 4;
                 HM_V2 arrow_pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
                 HM_V2 arrow_dir = entity->vel;
                 HM_Basis2 basis;
@@ -328,7 +338,7 @@ HM_UPDATE_AND_RENDER {
                 basis.xaxis = hm_v2_normalize(arrow_dir);
                 basis.yaxis = hm_v2_perp(basis.xaxis);
                 hm_draw_bbox2(framebuffer, basis,
-                              hm_bbox2_min_size(hm_v2(-arrow_len, -2), hm_v2(arrow_len, 2)),
+                              hm_bbox2_min_size(hm_v2(-arrow_len, -arrow_size / 2.0f), hm_v2(arrow_len, arrow_size / 2.0f)),
                               hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
             } break;
 

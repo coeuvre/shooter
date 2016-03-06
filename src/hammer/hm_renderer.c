@@ -118,7 +118,9 @@ hm_draw_bbox2(HM_Texture *texture, HM_Basis2 basis, HM_BBox2 bbox, HM_V4 color) 
     if (miny < 0) { miny = 0; }
     if (maxy >= texture->height) { maxy = texture->height; }
 
-    u32 color32 = v4_linear_to_u32_srgb(color);
+    // pre-multiply alpha
+    color.rgb = hm_v3_mul(color.a, color.rgb);
+
     u8 *row = (u8 *)texture->pixels + (texture->height - 1 - miny) * texture->pitch + minx * sizeof(*texture->pixels);
     for (i32 y = miny; y < maxy; ++y) {
         u32 *pixel = (u32 *)row;
@@ -133,9 +135,9 @@ hm_draw_bbox2(HM_Texture *texture, HM_Basis2 basis, HM_BBox2 bbox, HM_V4 color) 
             };
 
             HM_ARRAY_FOR(edges_perp, edge_perp_index) {
-                HM_V2 *edge_perp = edges_perp + edge_perp_index;
-                HM_V2 *testv = tests + edge_perp_index;
-                bool is_inside = hm_v2_dot(*testv, *edge_perp) >= 0.0f;
+                HM_V2 edge_perp = edges_perp[edge_perp_index];
+                HM_V2 testv = tests[edge_perp_index];
+                bool is_inside = hm_v2_dot(testv, edge_perp) >= 0.0f;
                 if (!is_inside) {
                     draw = false;
                     break;
@@ -143,6 +145,7 @@ hm_draw_bbox2(HM_Texture *texture, HM_Basis2 basis, HM_BBox2 bbox, HM_V4 color) 
             }
 
             if (draw) {
+                u32 color32 = v4_linear_to_u32_srgb(color);
                 *pixel = color32;
             }
 

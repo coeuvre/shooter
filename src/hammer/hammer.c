@@ -107,6 +107,7 @@ main(int argc, char *argv[]) {
     }
 
     HM_Input input = {};
+    HM_Input old_input = input;
 
     input.dt = 1.0f / 60.0f;
     //u32 target_frametime = dt * 1000.0f;
@@ -133,12 +134,19 @@ main(int argc, char *argv[]) {
         const u8 *keys = SDL_GetKeyboardState(&key_count);
         for (int key_index = 0; key_index < key_count; ++key_index) {
             input.keyboard.keys[key_index].is_down = keys[key_index];
+
+            bool key_is_pressed = keys[key_index] &&
+                                  !old_input.keyboard.keys[key_index].is_down;
+            input.keyboard.keys[key_index].is_pressed = key_is_pressed;
         }
 
         u32 mouse_button_state = SDL_GetMouseState(&input.mouse.x, &input.mouse.y);
         input.mouse.left.is_down = mouse_button_state & SDL_BUTTON(SDL_BUTTON_LEFT);
+        input.mouse.left.is_pressed = input.mouse.left.is_down && !old_input.mouse.left.is_down;
         input.mouse.middle.is_down = mouse_button_state & SDL_BUTTON(SDL_BUTTON_MIDDLE);
+        input.mouse.middle.is_pressed = input.mouse.middle.is_down && !old_input.mouse.middle.is_down;
         input.mouse.right.is_down = mouse_button_state & SDL_BUTTON(SDL_BUTTON_RIGHT);
+        input.mouse.right.is_pressed = input.mouse.right.is_down && !old_input.mouse.right.is_down;
 
         if (config.is_exit_on_esc && input.keyboard.keys[HM_Key_ESCAPE].is_down) {
             quit = 1;
@@ -157,6 +165,8 @@ main(int argc, char *argv[]) {
             SDL_Delay(target_frametime - frametime);
         }
 #endif
+
+        HM_SWAP(HM_Input, input, old_input);
     }
 
     free(memory.perm.base);

@@ -266,6 +266,7 @@ typedef enum {
 
 typedef struct {
     bool is_down;
+    bool is_pressed;
 } HM_KeyState;
 
 typedef struct {
