@@ -89,20 +89,6 @@ u32_srgb_to_v4_linear(u32 color) {
     return result;
 }
 
-static inline HM_V2
-get_point_in_basis2(HM_Basis2 basis, HM_V2 point) {
-    HM_V2 result;
-
-    //result = basis.origin + point.x * basis.xaxis + point.y * basis.yaxis
-    result = hm_v2_add(basis.origin,
-                       hm_v2_add(
-                           hm_v2_mul(point.x, basis.xaxis),
-                           hm_v2_mul(point.y, basis.yaxis)
-                       ));
-
-    return result;
-}
-
 HM_Texture2 *
 hm_load_bitmap(HM_MemoryArena *arena, char *path) {
     SDL_Surface *surface = SDL_LoadBMP(path);
@@ -184,17 +170,17 @@ hm_draw_bitmap(HM_Texture2 *target, HM_Texture2 *bitmap) {
 }
 
 void
-hm_draw_bbox2(HM_Texture2 *target, HM_Basis2 basis, HM_BBox2 bbox, HM_V4 color) {
+hm_draw_bbox2(HM_Texture2 *target, HM_Transform2 transform, HM_BBox2 bbox, HM_V4 color) {
     //
     // [3] +---+ [2]
     //     |   |
     // [0] +---+ [1]
     //
     HM_V2 points[4] = {
-        get_point_in_basis2(basis, bbox.min),
-        get_point_in_basis2(basis, hm_v2(bbox.max.x, bbox.min.y)),
-        get_point_in_basis2(basis, bbox.max),
-        get_point_in_basis2(basis, hm_v2(bbox.min.x, bbox.max.y)),
+        hm_transform2_apply(transform, bbox.min),
+        hm_transform2_apply(transform, hm_v2(bbox.max.x, bbox.min.y)),
+        hm_transform2_apply(transform, bbox.max),
+        hm_transform2_apply(transform, hm_v2(bbox.min.x, bbox.max.y)),
     };
     HM_V2 edges_perp[4] = {
         hm_v2_perp(hm_v2_sub(points[1], points[0])),

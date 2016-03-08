@@ -377,11 +377,11 @@ HM_UPDATE_AND_RENDER {
                 f32 arrow_size = 4;
                 HM_V2 arrow_pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
                 HM_V2 arrow_dir = entity->vel;
-                HM_Basis2 basis;
-                basis.origin = arrow_pos_screen;
-                basis.xaxis = hm_v2_normalize(arrow_dir);
-                basis.yaxis = hm_v2_perp(basis.xaxis);
-                hm_draw_bbox2(framebuffer, basis,
+                HM_Transform2 transform = hm_transform2_rotation(hm_get_v2_rad(arrow_dir));
+                transform = hm_transform2_translate_by(transform,
+                                                       arrow_pos_screen.x,
+                                                       arrow_pos_screen.y);
+                hm_draw_bbox2(framebuffer, transform,
                               hm_bbox2_min_size(hm_v2(-arrow_len, -arrow_size / 2.0f), hm_v2(arrow_len, arrow_size / 2.0f)),
                               hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
             } break;
@@ -390,7 +390,7 @@ HM_UPDATE_AND_RENDER {
                 HM_V2 pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
                 HM_V2 size_screen = hm_v2_mul(METERS_TO_PIXELS, entity->size);
 
-                hm_draw_bbox2(framebuffer, hm_basis2_identity(),
+                hm_draw_bbox2(framebuffer, hm_transform2_identity(),
                               hm_bbox2_cen_size(pos_screen, size_screen),
                               hm_v4(1.0f, 1.0f, 1.0f, 1.0f));
             } break;
@@ -404,16 +404,17 @@ HM_UPDATE_AND_RENDER {
         HM_V2 shooter_pos_screen = hm_v2_mul(METERS_TO_PIXELS, gamestate->shooter->pos);
         i32 xoffset = -gamestate->player_charged_power * 0.4 * METERS_TO_PIXELS;
 
-        HM_Basis2 basis;
-        basis.origin = shooter_pos_screen;
-        basis.xaxis = hm_v2_normalize(arrow_dir);
-        basis.yaxis = hm_v2_perp(basis.xaxis);
-        hm_draw_bbox2(framebuffer, basis,
+        HM_Transform2 transform = hm_transform2_rotation(hm_get_v2_rad(arrow_dir));
+        transform = hm_transform2_translate_by(transform,
+                                               shooter_pos_screen.x,
+                                               shooter_pos_screen.y);
+        hm_draw_bbox2(framebuffer, transform,
                       hm_bbox2_min_size(hm_v2(xoffset, -2), hm_v2(arrow_len, 2)),
                       hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
     }
 
     hm_draw_bitmap(framebuffer, gamestate->hero);
+
 #if 0
     {
         HM_Basis2 basis;

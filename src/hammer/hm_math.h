@@ -99,6 +99,13 @@ hm_get_v2_len(HM_V2 v) {
     return result;
 }
 
+static inline f32
+hm_get_v2_rad(HM_V2 v) {
+    f32 result = atan2f(v.y, v.x);
+
+    return result;
+}
+
 static inline HM_V2
 hm_v2_normalize(HM_V2 v) {
     f32 len = hm_get_v2_len(v);
@@ -386,5 +393,172 @@ hm_v4_mul(f32 a, HM_V4 b) {
 
     return result;
 }
+
+typedef union {
+    // The affine transform matrix:
+    //
+    //     | a c x |    | x y o |
+    //     | b d y | or | x y o |
+    //     | 0 0 1 |    | x y o |
+    //
+    // This is matrix is used to multiply by column vector:
+    //
+    //     | a c x |   | x |
+    //     | b d y | * | y |
+    //     | 0 0 1 |   | 1 |
+    //
+
+    struct {
+        f32 a;
+        f32 b;
+        f32 c;
+        f32 d;
+        f32 x;
+        f32 y;
+    };
+
+    struct {
+        f32 m00; f32 m10;
+        f32 m01; f32 m11;
+        f32 m02; f32 m12;
+    };
+
+    struct {
+        HM_V2 xaxis;
+        HM_V2 yaxis;
+        HM_V2 origin;
+    };
+} HM_Transform2;
+
+static inline HM_Transform2
+hm_transform2_dot(HM_Transform2 t1, HM_Transform2 t2) {
+    HM_Transform2 result;
+
+    result.m00 = t1.m00 * t2.m00 + t1.m01 * t2.m10 + t1.m02 * 0;
+    result.m01 = t1.m00 * t2.m01 + t1.m01 * t2.m11 + t1.m02 * 0;
+    result.m02 = t1.m00 * t2.m02 + t1.m01 * t2.m12 + t1.m02 * 1;
+
+    result.m10 = t1.m10 * t2.m00 + t1.m11 * t2.m10 + t1.m12 * 0;
+    result.m11 = t1.m10 * t2.m01 + t1.m11 * t2.m11 + t1.m12 * 0;
+    result.m12 = t1.m10 * t2.m02 + t1.m11 * t2.m12 + t1.m12 * 1;
+
+    return result;
+}
+
+static inline HM_Transform2
+hm_transform2_identity() {
+    HM_Transform2 result = {};
+
+    result.a = 1;
+    result.d = 1;
+
+    return result;
+}
+
+static inline HM_Transform2
+hm_transform2_rotation(f32 rad) {
+    HM_Transform2 result = {};
+
+    result.a = cos(rad);
+    result.b = sin(rad);
+    result.c = -result.b;
+    result.d = result.a;
+
+    return result;
+}
+
+static inline HM_Transform2
+hm_transform2_scale(f32 sx, f32 sy) {
+    HM_Transform2 result = hm_transform2_identity();
+
+    result.a = sx;
+    result.d = sy;
+
+    return result;
+}
+
+static inline HM_Transform2
+hm_transform2_translation(f32 x, f32 y) {
+    HM_Transform2 result = hm_transform2_identity();
+
+    result.x = x;
+    result.y = y;
+
+    return result;
+}
+
+static inline HM_V2
+hm_transform2_apply(HM_Transform2 t, HM_V2 v) {
+    HM_V2 result;
+
+    result.x = v.x * t.a + v.y * t.c + t.x;
+    result.y = v.x * t.b + v.y * t.d + t.y;
+
+    return result;
+}
+
+static inline HM_Transform2
+hm_transform2_translate_by(HM_Transform2 t, f32 x, f32 y) {
+    HM_Transform2 result = hm_transform2_dot(hm_transform2_translation(x, y), t);
+
+    return result;
+}
+
+#if 0
+typedef union {
+    struct {
+        HM_V3 v0;
+        HM_V3 v1;
+        HM_V3 v2;
+    };
+
+    struct {
+        f32 m00; f32 m10; f32 m20;
+        f32 m01; f32 m11; f32 m21;
+        f32 m02; f32 m12; f32 m22;
+    };
+} HM_M3;
+
+static inline HM_M3
+hm_m3_identity() {
+    HM_M3 result = {};
+
+    result.m00 = 1;
+    result.m11 = 1;
+    result.m22 = 1;
+
+    return result;
+}
+
+static inline HM_M3
+hm_m3_dot(HM_M3 a, HM_M3 b) {
+    HM_M3 result;
+
+    result.m00 = a.m00 * b.m00 + a.m01 * b.m10 + a.m02 * b.m20;
+    result.m01 = a.m00 * b.m01 + a.m01 * b.m11 + a.m02 * b.m21;
+    result.m02 = a.m00 * b.m02 + a.m01 * b.m12 + a.m02 * b.m22;
+
+    result.m10 = a.m10 * b.m00 + a.m11 * b.m10 + a.m12 * b.m20;
+    result.m11 = a.m10 * b.m01 + a.m11 * b.m11 + a.m12 * b.m21;
+    result.m12 = a.m10 * b.m02 + a.m11 * b.m12 + a.m12 * b.m22;
+
+    result.m20 = a.m20 * b.m00 + a.m21 * b.m10 + a.m22 * b.m20;
+    result.m21 = a.m20 * b.m01 + a.m21 * b.m11 + a.m22 * b.m21;
+    result.m22 = a.m20 * b.m02 + a.m21 * b.m12 + a.m22 * b.m22;
+
+    return result;
+}
+
+static inline HM_V3
+hm_m3_dot_v3(HM_M3 a, HM_V3 b) {
+    HM_V3 result;
+
+    result.x = a.m00 * b.x + a.m01 * b.y + a.m02 * b.z;
+    result.y = a.m10 * b.x + a.m11 * b.y + a.m12 * b.z;
+    result.z = a.m20 * b.x + a.m21 * b.y + a.m22 * b.z;
+
+    return result;
+}
+#endif
 
 #endif
