@@ -498,6 +498,20 @@ hm_transform2_apply(HM_Transform2 t, HM_V2 v) {
 }
 
 static inline HM_Transform2
+hm_transform2_rotate_by(HM_Transform2 t, f32 rad) {
+    HM_Transform2 result = hm_transform2_dot(hm_transform2_rotation(rad), t);
+
+    return result;
+}
+
+static inline HM_Transform2
+hm_transform2_scale_by(HM_Transform2 t, f32 sx, f32 sy) {
+    HM_Transform2 result = hm_transform2_dot(hm_transform2_scale(sx, sy), t);
+
+    return result;
+}
+
+static inline HM_Transform2
 hm_transform2_translate_by(HM_Transform2 t, f32 x, f32 y) {
     HM_Transform2 result = hm_transform2_dot(hm_transform2_translation(x, y), t);
 
