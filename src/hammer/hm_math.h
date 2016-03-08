@@ -361,6 +361,18 @@ hm_v4(f32 x, f32 y, f32 z, f32 w) {
 }
 
 static inline HM_V4
+hm_v4_add(HM_V4 a, HM_V4 b) {
+    HM_V4 result;
+
+    result.x = a.x + b.x;
+    result.y = a.y + b.y;
+    result.z = a.z + b.z;
+    result.w = a.w + b.w;
+
+    return result;
+}
+
+static inline HM_V4
 hm_v4_mul(f32 a, HM_V4 b) {
     HM_V4 result;
 

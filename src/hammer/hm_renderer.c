@@ -164,7 +164,19 @@ hm_draw_bitmap(HM_Texture2 *target, HM_Texture2 *bitmap) {
         u32 *dst = (u32 *)dst_row;
 
         for (int x = 0; x < bitmap->width; ++x) {
-            *dst++ = *src++;
+            u32 src_color32 = *src;
+            u32 dst_color32 = *dst;
+
+            HM_V4 src_color = u32_srgb_to_v4_linear(src_color32);
+            HM_V4 dst_color = u32_srgb_to_v4_linear(dst_color32);
+
+            // (1 - src_color.a) * dst_color + src_color;
+            HM_V4 color = hm_v4_add(hm_v4_mul(1 - src_color.a, dst_color), src_color);
+
+            *dst = v4_linear_to_u32_srgb(color);
+
+            ++src;
+            ++dst;
         }
         src_row += bitmap->pitch;
         dst_row += target->pitch;
