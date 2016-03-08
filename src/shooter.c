@@ -429,6 +429,3 @@ HM_UPDATE_AND_RENDER {
     printf("entity count: %d\n", gamestate->entity_count);
 #endif
 }
-
-#define HM_STATIC
-#include "hammer/hammer.c"

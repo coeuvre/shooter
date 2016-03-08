@@ -58,4 +58,10 @@ typedef HM_INIT_GAME_DEF(HM_InitGameFunc);
 #define HM_UPDATE_AND_RENDER HM_UPDATE_AND_RENDER_DEF(hm_update_and_render)
 typedef HM_UPDATE_AND_RENDER_DEF(HM_UpdateAndRenderFunc);
 
+#ifdef HM_GAME_CODE_STATIC
+HM_CONFIG;
+HM_INIT_GAME;
+HM_UPDATE_AND_RENDER;
+#endif
+
 #endif

@@ -33,7 +33,7 @@ main(int argc, char *argv[]) {
         .update_and_render = hm_update_and_render_stub,
     };
 
-#ifdef HM_STATIC
+#ifdef HM_GAME_CODE_STATIC
     hm.config = hm_config;
     hm.init_game = hm_init_game;
     hm.update_and_render = hm_update_and_render;
