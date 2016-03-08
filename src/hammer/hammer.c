@@ -114,7 +114,7 @@ main(int argc, char *argv[]) {
 
     i32 quit = 0;
     while (!quit) {
-        //u32 frame_begin = SDL_GetTicks();
+        u32 frame_begin = SDL_GetTicks();
 
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -154,8 +154,8 @@ main(int argc, char *argv[]) {
 
         hm.update_and_render(&memory, &input, &framebuffer);
 
-        //u32 frametime = SDL_GetTicks() - frame_begin;
-        //printf("%u\n", frametime);
+        u32 frametime = SDL_GetTicks() - frame_begin;
+        printf("%u\n", frametime);
 
         render_to_screen(&renderer, &framebuffer);
 

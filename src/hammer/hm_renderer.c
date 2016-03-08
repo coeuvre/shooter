@@ -15,7 +15,7 @@
 static void
 render_to_screen(HM_Renderer *renderer, HM_Texture2 *texture) {
     SDL_UpdateTexture(renderer->texture, 0, texture->pixels, texture->width * 4);
-    SDL_RenderCopy(renderer->renderer, renderer->texture, 0, 0);
+    SDL_RenderCopyEx(renderer->renderer, renderer->texture, 0, 0, 0, 0, SDL_FLIP_VERTICAL);
     SDL_RenderPresent(renderer->renderer);
 }
 
@@ -121,7 +121,7 @@ hm_load_bitmap(HM_MemoryArena *arena, char *path) {
         result->pitch = result->width * sizeof(u32);
         result->pixels = HM_PUSH_SIZE(arena, result->pitch * result->height);
 
-        u8 *src_row = (u8 *)surface->pixels;
+        u8 *src_row = (u8 *)surface->pixels + (surface->h - 1) * surface->pitch;
         u8 *dst_row = (u8 *)result->pixels;
         for (int y = 0; y < result->height; ++y) {
             u32 *src = (u32 *)src_row;
@@ -140,7 +140,7 @@ hm_load_bitmap(HM_MemoryArena *arena, char *path) {
 
                 *dst++ = v4_linear_to_u32_srgb(color);
             }
-            src_row += surface->pitch;
+            src_row -= surface->pitch;
             dst_row += result->pitch;
         }
 
@@ -230,7 +230,7 @@ hm_draw_bbox2(HM_Texture2 *target, HM_Basis2 basis, HM_BBox2 bbox, HM_V4 color) 
     // pre-multiply alpha
     color.rgb = hm_v3_mul(color.a, color.rgb);
 
-    u8 *row = (u8 *)target->pixels + (target->height - 1 - miny) * target->pitch + minx * sizeof(*target->pixels);
+    u8 *row = (u8 *)target->pixels + (miny) * target->pitch + minx * sizeof(*target->pixels);
     for (i32 y = miny; y < maxy; ++y) {
         u32 *pixel = (u32 *)row;
         for (i32 x = minx; x < maxx; ++x) {
@@ -260,6 +260,6 @@ hm_draw_bbox2(HM_Texture2 *target, HM_Basis2 basis, HM_BBox2 bbox, HM_V4 color) 
 
             ++pixel;
         }
-        row -= target->pitch;
+        row += target->pitch;
     }
 }

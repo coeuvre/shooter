@@ -186,6 +186,9 @@ hm_ray2_line2_intersection_test(HM_Ray2 ray, HM_Line2 line) {
         result.exist = 1;
         result.t = solution.x;
         result.normal = hm_v2_perp(hm_v2_sub(line.b, line.a));
+        if (hm_v2_dot(ray.d, result.normal) > 0.0f) {
+            result.normal = hm_v2_rperp(hm_v2_sub(line.b, line.a));
+        }
     }
 
     return result;

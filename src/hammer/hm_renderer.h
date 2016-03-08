@@ -2,7 +2,9 @@
 #define HM_RENDERER_H
 
 typedef struct {
-    // The pixels is in sRGB color space with pre-multiplied alpha
+    // The pixels is in sRGB color space with pre-multiplied alpha.
+    // The coordinates are bottom-up which means the first row pointer
+    // points to the bottom-most row of raw bitmap.
     //
     // Bit pattern: 0xRRGGBBAA
     u32 *pixels;
