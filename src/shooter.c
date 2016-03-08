@@ -78,14 +78,18 @@ typedef struct {
 
     bool is_player_charging;
     f32 player_charged_power;
+
+    HM_Texture2 *hero;
 } GameState;
 
 static void
-init_game_state(GameState *gamestate) {
+init_game_state(HM_GameMemory *memory, GameState *gamestate) {
     // The entity index 0 is considerd null entity
     for (u32 free_entity_index = MAX_ENTITY_COUNT - 1; free_entity_index != 0; --free_entity_index) {
         gamestate->free_entities[gamestate->free_entity_count++] = free_entity_index;
     }
+
+    gamestate->hero = hm_load_bitmap(&memory->perm, "asset/hero.bmp");
 }
 
 static Entity *
@@ -200,7 +204,7 @@ HM_CONFIG {
 
 HM_INIT_GAME {
     GameState *gamestate = HM_PUSH_STRUCT(&memory->perm, GameState);
-    init_game_state(gamestate);
+    init_game_state(memory, gamestate);
     build_game_scene(gamestate);
 }
 
@@ -409,6 +413,7 @@ HM_UPDATE_AND_RENDER {
                       hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
     }
 
+    hm_draw_bitmap(framebuffer, gamestate->hero);
 #if 0
     {
         HM_Basis2 basis;

@@ -1,3 +1,3 @@
 #!/bin/sh
 
-./build.sh && cd build && clear && ./shooter
+./build.sh && clear && ./build/shooter

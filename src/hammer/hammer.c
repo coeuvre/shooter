@@ -82,7 +82,7 @@ main(int argc, char *argv[]) {
     renderer.renderer = sdl_renderer;
     renderer.texture = sdl_texture;
 
-    HM_Texture framebuffer;
+    HM_Texture2 framebuffer;
     framebuffer.pixels = buffer;
     framebuffer.width = config.window.width;
     framebuffer.height = config.window.height;

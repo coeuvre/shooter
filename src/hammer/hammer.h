@@ -54,7 +54,7 @@ typedef HM_CONFIG_DEF(HM_ConfigFunc);
 #define HM_INIT_GAME HM_INIT_GAME_DEF(hm_init_game)
 typedef HM_INIT_GAME_DEF(HM_InitGameFunc);
 
-#define HM_UPDATE_AND_RENDER_DEF(name) void name(HM_GameMemory *memory, HM_Input *input, HM_Texture *framebuffer)
+#define HM_UPDATE_AND_RENDER_DEF(name) void name(HM_GameMemory *memory, HM_Input *input, HM_Texture2 *framebuffer)
 #define HM_UPDATE_AND_RENDER HM_UPDATE_AND_RENDER_DEF(hm_update_and_render)
 typedef HM_UPDATE_AND_RENDER_DEF(HM_UpdateAndRenderFunc);
 
