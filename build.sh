@@ -1,7 +1,7 @@
 #!/bin/sh
 
 cc=clang
-src="`pwd`/src/shooter.c `pwd`/src/hammer/hammer.c"
+src=`pwd`/src/shooter.c
 
 clear
 
@@ -9,7 +9,8 @@ clear
 
 pushd build
 
-$cc -W -Wall -g -std=c11 -DHM_GAME_CODE_STATIC $src -lSDL2 -o shooter
+$cc -W -Wall -g -std=c11 $src -c -o shooter.o
+$cc -lSDL2 -lhammer shooter.o -o shooter
 
 success=$?
 
