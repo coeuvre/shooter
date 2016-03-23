@@ -79,7 +79,7 @@ typedef struct {
     bool is_player_charging;
     f32 player_charged_power;
 
-    HM_Texture2 *hero;
+    HM_Texture2 hero;
 } GameState;
 
 static void
@@ -223,7 +223,7 @@ HM_UPDATE_AND_RENDER {
         return;
     }
 
-    hm_clear_texture(framebuffer);
+    hm_clear_texture(framebuffer, hm_v4(0, 0, 0, 0));
 
     if (input->keyboard.keys[HM_Key_W].is_down) {
         gamestate->rope->vel.y = 10;
@@ -378,9 +378,7 @@ HM_UPDATE_AND_RENDER {
                 HM_V2 arrow_pos_screen = hm_v2_mul(METERS_TO_PIXELS, entity->pos);
                 HM_V2 arrow_dir = entity->vel;
                 HM_Transform2 transform = hm_transform2_rotation(hm_get_v2_rad(arrow_dir));
-                transform = hm_transform2_translate_by(transform,
-                                                       arrow_pos_screen.x,
-                                                       arrow_pos_screen.y);
+                transform = hm_transform2_translate_by(transform, arrow_pos_screen);
                 hm_draw_bbox2(framebuffer, transform,
                               hm_bbox2_min_size(hm_v2(-arrow_len, -arrow_size / 2.0f), hm_v2(arrow_len, arrow_size / 2.0f)),
                               hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
@@ -405,15 +403,13 @@ HM_UPDATE_AND_RENDER {
         i32 xoffset = -gamestate->player_charged_power * 0.4 * METERS_TO_PIXELS;
 
         HM_Transform2 transform = hm_transform2_rotation(hm_get_v2_rad(arrow_dir));
-        transform = hm_transform2_translate_by(transform,
-                                               shooter_pos_screen.x,
-                                               shooter_pos_screen.y);
+        transform = hm_transform2_translate_by(transform, shooter_pos_screen);
         hm_draw_bbox2(framebuffer, transform,
                       hm_bbox2_min_size(hm_v2(xoffset, -2), hm_v2(arrow_len, 2)),
                       hm_v4(0.0f, 1.0f, 0.0f, 1.0f));
     }
 
-    hm_draw_bitmap(framebuffer, gamestate->hero);
+    hm_draw_bitmap(framebuffer, hm_transform2_identity(), &gamestate->hero, hm_v4(1, 1, 1, 1));
 
 #if 0
     {
